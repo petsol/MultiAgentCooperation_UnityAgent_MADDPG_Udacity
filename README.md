@@ -29,7 +29,7 @@ The MADDPG model implemented here passed the target value of 0.5. at episode 794
   - unityagents 0.4
 - Clone repo
 - Update environment path in you copy (Tennis.ipynb)
-- Run the Tennis.ipynb notebook (multiagent_resources.py should be in the same directory)
+- Run the Tennis.ipynb notebook (multiagent_resources.py should be in the same (working) directory)
 
 \*(higher might work, but not guaranteed)
 
