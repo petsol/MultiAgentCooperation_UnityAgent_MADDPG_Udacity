@@ -38,7 +38,7 @@ Udacity Deep Reinforcement Learning Nanodegree
 - Ornstein–Uhlenbeck process:
    https://en.wikipedia.org/wiki/Ornstein%E2%80%93Uhlenbeck_process
 - Udacity Deep Reinforcement Learning Git Repository:
-   https://github.com/udacity/deep-reinforcement-learning/tree/master/p2_continuous-control
+   https://github.com/udacity/deep-reinforcement-learning/tree/master/p3_collab-compet 
 - Reinforcement Learning in Continuous Action Spaces | DDPG Tutorial (Pytorch) (Phil Tabor)
    https://www.youtube.com/watch?v=6Yd5WnYls_Y&t=2208s
 - Multi-Agent Deep Deterministic Policy Gradient (MADDPG) https://www.youtube.com/watch?v=Ku5h_FBL6Lg
