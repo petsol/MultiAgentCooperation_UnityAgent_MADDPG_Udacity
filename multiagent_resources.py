@@ -5,9 +5,16 @@ import gym
 import matplotlib.pyplot as plt 
 
 def plot_episode_scores(scores, target):
-    plt.plot(scores, color='blue')
-    plt.plot(np.hstack([np.empty((100,)) * np.nan, np.convolve(scores, np.ones((100,))/100, mode='valid')[:]]), color='orange')
-    plt.plot(np.ones((len(scores),)) * float(target), color='red')
+    plt.figure(figsize=(13,7))
+    score = plt.plot(scores, color='coral', label='Scores')
+    avg100 = plt.plot(np.hstack([np.empty((100,)) * np.nan, np.convolve(scores, np.ones((100,))/100, mode='valid')]), color='lime', label='Mean(100)', linewidth=2)
+    target_ = plt.plot(np.ones((len(scores),)) * float(target), color='indigo', label='Target')
+    
+    plt.title("Learning Curve")
+    plt.xlabel("Episode")
+    plt.ylabel("Score")
+    
+    plt.legend()
     plt.show()
 
 class OUActionNoise:
@@ -58,28 +65,24 @@ class ExperienceBuffer:
         self.actions[self.insertion_index] = action
         self.rewards[self.insertion_index] = reward
         self.isdones[self.insertion_index] = float(isdone)
-        #if self.insertion_index == 0:
-         #   print(self.current_states[self.insertion_index], self.next_states[self.insertion_index], 
-         #         self.actions[self.insertion_index], self.rewards[self.insertion_index], self.isdones[self.insertion_index])
         
         self.total_collected_samples += 1
         self.collected_samples = min(self.total_collected_samples, self.buffer_length)
         
         self.insertion_index = self.total_collected_samples % self.buffer_length
             
-        #print(self.current_states)
             
-    def sample(self, batch_size=None):
+    def sample(self, indices=None, batch_size=None):
         batch_size = self.batch_size if batch_size is None else batch_size
-        #print(min(self.buffer_length, self.collected_samples))
-        indices = np.random.choice(min(self.buffer_length, self.collected_samples), batch_size)
-        #print(indices)
+
+        indices = np.random.choice(min(self.buffer_length, self.collected_samples), batch_size) if indices is None else indices
         
         return {    'current_states':    self.current_states[indices],
                     'next_states':       self.next_states[indices],
                     'actions':           self.actions[indices],
                     'rewards':           self.rewards[indices],
-                    'isdones':           self.isdones[indices]
+                    'isdones':           self.isdones[indices],
+                    'indices':           indices
                }
     
 class Critic(torch.nn.Module):
@@ -128,22 +131,14 @@ class Critic(torch.nn.Module):
 
         q_forming_state = self.fc1(stateX)
         #q_forming_state = self.bn1(q_forming_state)
-        #q_forming_state = torch.nn.functional.relu(q_forming_state)
         q_forming_action = self.action_value(actionX)
-        #q_forming_action = torch.nn.functional.relu(q_forming_action)
-        
-        #q_forming_state = torch.cat((q_forming_state, action), dim=1)
-        #q_forming_state = torch.add((q_forming_state, action))
+
         q_forming = torch.add(q_forming_state, q_forming_action)
         q_forming = torch.nn.functional.relu(q_forming)
         
         q_forming = self.fc2(q_forming)
-        #q_forming_state = self.bn2(q_forming_state)
-        #q_forming_state = torch.nn.functional.relu(q_forming_state)
+        #q_forming = self.bn2(q_forming_state)
 
-        #q_forming_action = torch.nn.functional.relu(q_forming_action)
-        
-        #q_forming = torch.add(q_forming_state, q_forming_action)
         q_forming = torch.nn.functional.relu(q_forming)
         
         q_forming = self.q(q_forming)
@@ -270,8 +265,8 @@ class Agent:
     def learn(self):
         if self.memory1.collected_samples >= self.batch_size: # doesn't matter which mem we check
             # _ at end means its a batch in learn()
-            sampled_data1_ = self.memory1.sample(self.batch_size)
-            sampled_data2_ = self.memory2.sample(self.batch_size)
+            sampled_data1_ = self.memory1.sample(batch_size=self.batch_size)
+            sampled_data2_ = self.memory2.sample(batch_size=self.batch_size, indices=sampled_data1_['indices'])
             
             state1_present_env_     = torch.tensor(sampled_data1_['current_states'], dtype=torch.float).to(self.critic1.device)
             actionset1_present_env_ = torch.tensor(sampled_data1_['actions'],        dtype=torch.float).to(self.critic1.device)
@@ -283,16 +278,7 @@ class Agent:
             actionset2_present_env_ = torch.tensor(sampled_data2_['actions'],        dtype=torch.float).to(self.critic2.device)
             reward2_future_env_     = torch.tensor(sampled_data2_['rewards'],        dtype=torch.float).to(self.critic2.device)
             state2_future_env_      = torch.tensor(sampled_data2_['next_states'],    dtype=torch.float).to(self.critic2.device)
-            isdone2_future_env_     = torch.tensor(sampled_data2_['isdones'],        dtype=torch.float).to(self.critic2.device) # this we don't really need
-            
-            #print(state0_.shape, actionset0_.shape, reward1_.shape, state1_.shape, isdone_.shape)
-            #print(state0_, actionset0_, reward1_, state1_, isdone_)
-            #exit()
-
-            #self.actor.eval()            
-            #self.actor_target.eval()
-            #self.critic_target.eval()
-            #self.critic.eval()          
+            isdone2_future_env_     = torch.tensor(sampled_data2_['isdones'],        dtype=torch.float).to(self.critic2.device) # this we don't really need       
             
             actionset1_future_target_  = self.actor1_target(state1_future_env_) 
             actionset2_future_target_  = self.actor2_target(state2_future_env_) 
@@ -346,16 +332,6 @@ class Agent:
             
             actor1_losspart = -self.critic1(stateX_present_env_, actionsetX1_present_local_).mean()
             actor2_losspart = -self.critic2(stateX_present_env_, actionsetX2_present_local_).mean()
-
-            #actor_loss = torch.mean(actor_loss) # loss function: actor@local <- critic@local
-            
-            # nagyon fontos tanulság: nem értettem, hogy miért teszi be ide a critic q értékét. a korábbi loss értékekkor a 0-hpz minimalizálás azt
-            # a rossz beidegződést tanítatta meg velem, hogy ennek a loss-nak 0 körül kell mozognia, ami téves. a MSE és hasonlók olyan függvéynek, amik
-            # szélső minimális értékkel rendelkeznek ami 0, ezért erre asszociáltam hibásan
-            # a loss-nál egy funkcióban kell gondolkodni, ami teljesen mindegy hogy hogyan kapcsolódik az optimalizálandó értékhez, kivéve egy dolgot
-            # a funkció értékének csökkenésével, vagy növekedésével szigorúan optimálisabb, vagy kevésbé optimális lesz a network kimenet (vagy fordítva, mitn itt)
-            
-            # itt ez úgy néz ki, hogy minél magasabb a q (critic) érték, annál optimálisabb lesz a kimenete az actornak
             
             actor1_loss = (actor1_losspart + actor2_losspart.detach() * self.team_spirit) / (1. + self.team_spirit)
             actor2_loss = (actor2_losspart + actor1_losspart.detach() * self.team_spirit) / (1. + self.team_spirit)
@@ -375,11 +351,9 @@ class Agent:
         
     def project_parameters_to_target(self, local, target, tau=None):
         tau = self.tau if tau is None else tau
-        #print(tau)
 
         for local_param, target_param in zip(local.parameters(), target.parameters()):
             target_param.data.copy_(tau * (local_param.data) + (1. - tau) * target_param.data)  
-            #print(local_param.data, target_param.data)
                     
     def save_models(self):
         for network in [self.actor1, self.actor1_target, self.actor2, self.actor2_target, 
