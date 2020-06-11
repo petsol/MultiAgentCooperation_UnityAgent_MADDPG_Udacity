@@ -13,12 +13,13 @@ The observation space has nominally 8 variables representing position, velocity 
 # Applied model
 This is a continuous input continuous output multiagent cooperative/collaboration environment considering the reward-termination-scoring structure. For such environments MADDPG algorithm can be considered as state of the art model today. MultiAgent Deep Deterministic Policy Gradients is a multiagent version of DDPG, where not only multiple agents try to receive as much reward as possible, but their reward structure is cross propagated in a manner that reflects the needs to solve the environment. As DDPG, MADDPG applies an Actor and a Critic for each agent (in most implementations). Both actors receive only their respective state values and produce an action set on their output as a result of the learned policy. At inference this ensures that the agents can collaborate independently without direct "state-sharing". However the critics for all the agents receive all states and all actions. Since they will not play a role in inference phase the actors after training can be considered independent. There are different implementations of the MADDPG algorithm [1] In the original MADDPG paper [2] all Actors have their respective Critic network, with the other agents' (and possibly other hidden elements') state observations and actions. Both Actors are continuously optimized through maximizing the averaged Critic value for a specific action-set (for both agents), whereas the Critics are optimized through the actors' target networks (actions) and their own target networks, to maintain relative independence of the optimizing process. The target networks are updated through soft updating at each step. In this implementation the Critic networks' rewarding structures were differentiated by a "team spirit" variable. This variable adjusted the Critic networks' response to the "other" agent's rewards.  At the same time the loss function of the Actors were also sensitivized to the other agent's Critic network less if the team spirit variable was low. This deviates slightly from the original MADDPG implementation. For further implementation details see the Report.md file in this Repository. For further references see sources below.  
 
-1 Parameter Sharing Deep Deterministic Policy Gradient for Cooperative Multiagent Reinforcement Learning: https://arxiv.org/ftp/arxiv/papers/1710/1710.00336.pdf
-2 Multi-Agent Actor-Critic for Mixed Cooperative-Competitive Environments: https://arxiv.org/pdf/1706.02275.pdf
+1. Parameter Sharing Deep Deterministic Policy Gradient for Cooperative Multiagent Reinforcement Learning: https://arxiv.org/ftp/arxiv/papers/1710/1710.00336.pdf
+1. Multi-Agent Actor-Critic for Mixed Cooperative-Competitive Environments: https://arxiv.org/pdf/1706.02275.pdf
 
 # Results
-The MADDPG model implemented here converged to the target value of 0.5. at episode 508, with a value of 30.0793.
-![Continuous Control Convergence Graph](https://github.com/petsol/ContinuousControl_UnityAgent_DDPG_Udacity/blob/master/ContinuousControl_convergence.png?raw=true)
+The MADDPG model implemented here passed the target value of 0.5. at episode 1727, with a value of 0.5099.
+
+![Tennis Convergence Graph](https://github.com/petsol/MultiAgentCooperation_UnityAgent_MADDPG_Udacity/blob/master/Tennis_scores.png?raw=true)
 
 # Rerunning the model
 
@@ -33,7 +34,11 @@ The MADDPG model implemented here converged to the target value of 0.5. at episo
 \*(higher might work, but not guaranteed)
 
 # Saved model parameter-sets
-- al1.state (actor-local)
-- at1.state (actor-target)
-- cl1.state (critic-local)
-- cl2.state (critic-target)
+- Actor1_ddpg
+- Actor2_ddpg
+- Actor1Target_ddpg
+- Actor2Target_ddpg
+- Critic1_ddpg
+- Critic2_ddpg
+- Critic1Target_ddpg
+- Critic2Target_ddpg
